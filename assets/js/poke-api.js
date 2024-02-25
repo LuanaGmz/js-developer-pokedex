@@ -19,17 +19,43 @@ function convertPokeApiDetailToPokemon(pokeDetail) {
 
 pokeApi.getPokemonDetail = (pokemon) => {
     return fetch(pokemon.url)
-        .then((response) => response.json())
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar detalhes do Pokémon ${pokemon.name}`);
+            }
+            return response.json();
+        })
         .then(convertPokeApiDetailToPokemon)
-}
+        .catch((error) => {
+            console.error('Erro ao obter detalhes do Pokémon:', error);
+            throw error;
+        });
+};
 
 pokeApi.getPokemons = (offset = 0, limit = 5) => {
-    const url = `https://pokeapi.co/api/v2/pokemon?offset=${offset}&limit=${limit}`
+    const url = `https://pokeapi.co/api/v2/pokemon?offset=${offset}&limit=${limit}`;
 
     return fetch(url)
-        .then((response) => response.json())
-        .then((jsonBody) => jsonBody.results)
-        .then((pokemons) => pokemons.map(pokeApi.getPokemonDetail))
-        .then((detailRequests) => Promise.all(detailRequests))
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Erro ao buscar pokémons');
+            }
+            return response.json();
+        })
+        .then((jsonBody) => {
+            const pokemons = jsonBody.results;
+            if (pokemons.length === 0) {
+                throw new Error('Nenhum pokémon encontrado');
+            }
+            return pokemons;
+        })
+        .then((pokemons) => {
+            const detailRequests = pokemons.map(pokeApi.getPokemonDetail);
+            return Promise.all(detailRequests);
+        })
         .then((pokemonsDetails) => pokemonsDetails)
-}
+        .catch((error) => {
+            console.error('Erro:', error);
+            return [];
+        });
+};
